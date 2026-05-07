@@ -1,0 +1,10 @@
+[Unit]
+Description=One-shot polybot gate verdict at 2026-05-07 16:00 UTC (1h after checkpoint)
+
+[Timer]
+OnCalendar=2026-05-07 16:00:00 UTC
+Persistent=true
+Unit=polybot-verdict.service
+
+[Install]
+WantedBy=timers.target

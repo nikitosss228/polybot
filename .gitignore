@@ -1,0 +1,32 @@
+# Virtualenv
+venv/
+.venv/
+
+# Python build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local config + secrets — NEVER commit these
+.env
+*.key
+*.pem
+secret/
+secrets/
+
+# Runtime data — bot writes here, not for version control
+logs/
+*.log
+
+# Editor / OS detritus
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~

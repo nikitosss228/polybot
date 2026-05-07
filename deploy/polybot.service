@@ -1,0 +1,39 @@
+[Unit]
+Description=Polybot — Polymarket resolution-edge trading bot
+Documentation=file:///root/polybot
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=10
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/root/polybot
+EnvironmentFile=/root/polybot/.env
+ExecStart=/root/polybot/venv/bin/python -m polybot.main
+
+# Graceful shutdown — main.py installs SIGTERM/SIGINT handlers.
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+# Auto-recover from crashes / network blips.
+Restart=on-failure
+RestartSec=10s
+
+# Resource and surface hardening.
+LimitNOFILE=4096
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/root/polybot/logs
+PrivateTmp=true
+
+# Send stdout/stderr to journald in addition to the bot's rotating log file.
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=polybot
+
+[Install]
+WantedBy=multi-user.target

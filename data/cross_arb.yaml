@@ -1,0 +1,150 @@
+# Curated L2 cross-event correlations for the cross_arb detector.
+#
+# Each pair encodes a logical inequality between TWO different Polymarket events
+# that the platform doesn't auto-link. Polymarket has no UI feature to
+# co-display "Russia-Ukraine ceasefire by May 31" and "by Jun 30" as related
+# markets, so price drift between them can persist longer than within-event
+# inversions.
+#
+# Inequality: P(subset) <= P(superset). Strict liquidity-aware violation:
+#   bid(subset) > ask(superset)
+# (the [bid_sub, ask_sub] range is entirely above [bid_sup, ask_sup], which is
+# incompatible with a consistent valuation.) See cross_arb.py:evaluate for the
+# arb construction and payoff math.
+#
+# Threshold (in price units, e.g. 0.03 = 3 cents) is the minimum gap we surface.
+# Conservative defaults leave room for fees + slippage. Ratchet down to 0.02
+# only on highly liquid events where we trust the bid/ask.
+#
+# Curated 2026-05-06 from a live Gamma /events scan. All events below have
+# `markets: 1` (single-market binary Yes/No) so the bid/ask pair is unambiguous.
+# Multi-market events (Israel-Iran peace, Trump visits China) require a v2
+# extension (per-market addressing) and are NOT in this file yet.
+
+pairs:
+
+  # ------ Russia-Ukraine ceasefire — temporal monotonic, 4 horizons --------
+  # As of 2026-05-06: 4¢ -> 9¢ -> 26¢ -> 48¢ (properly ordered, no current arb)
+  - id: russia-ceasefire-may-vs-jun
+    type: temporal_monotonic
+    threshold: 0.03
+    note: P(by May 31 2026) <= P(by Jun 30 2026)
+    subset:
+      event_slug: russia-x-ukraine-ceasefire-by-may-31-2026
+      outcome: "Yes"
+    superset:
+      event_slug: russia-x-ukraine-ceasefire-by-june-30-2026
+      outcome: "Yes"
+
+  - id: russia-ceasefire-jun-vs-2027
+    type: temporal_monotonic
+    threshold: 0.03
+    note: P(by Jun 30 2026) <= P(before 2027)
+    subset:
+      event_slug: russia-x-ukraine-ceasefire-by-june-30-2026
+      outcome: "Yes"
+    superset:
+      event_slug: russia-x-ukraine-ceasefire-before-2027
+      outcome: "Yes"
+
+  - id: russia-ceasefire-2027-vs-jun-2027
+    type: temporal_monotonic
+    threshold: 0.03
+    note: P(before 2027) <= P(by Jun 30 2027)
+    subset:
+      event_slug: russia-x-ukraine-ceasefire-before-2027
+      outcome: "Yes"
+    superset:
+      event_slug: russia-x-ukraine-ceasefire-by-june-30-2027
+      outcome: "Yes"
+
+  - id: russia-ceasefire-may-vs-2027
+    type: temporal_monotonic
+    threshold: 0.05
+    note: P(by May 31 2026) <= P(before 2027) — wider span
+    subset:
+      event_slug: russia-x-ukraine-ceasefire-by-may-31-2026
+      outcome: "Yes"
+    superset:
+      event_slug: russia-x-ukraine-ceasefire-before-2027
+      outcome: "Yes"
+
+  # ------ China-Taiwan invasion — 4 horizons -----------------------------
+  - id: china-taiwan-jun-vs-sep
+    type: temporal_monotonic
+    threshold: 0.02
+    note: P(by Jun 30 2026) <= P(by Sep 30 2026)
+    subset:
+      event_slug: will-china-invade-taiwan-by-june-30-2026
+      outcome: "Yes"
+    superset:
+      event_slug: will-china-invade-taiwan-by-september-30-2026
+      outcome: "Yes"
+
+  - id: china-taiwan-sep-vs-2027
+    type: temporal_monotonic
+    threshold: 0.02
+    note: P(by Sep 30 2026) <= P(before 2027)
+    subset:
+      event_slug: will-china-invade-taiwan-by-september-30-2026
+      outcome: "Yes"
+    superset:
+      event_slug: will-china-invade-taiwan-before-2027
+      outcome: "Yes"
+
+  - id: china-taiwan-2027-vs-2028
+    type: temporal_monotonic
+    threshold: 0.03
+    note: P(before 2027) <= P(by Dec 31 2027)
+    subset:
+      event_slug: will-china-invade-taiwan-before-2027
+      outcome: "Yes"
+    superset:
+      event_slug: will-china-invade-taiwan-by-december-31-2027
+      outcome: "Yes"
+
+  - id: china-taiwan-jun26-vs-2027
+    type: temporal_monotonic
+    threshold: 0.03
+    note: P(by Jun 30 2026) <= P(before 2027) — wider span
+    subset:
+      event_slug: will-china-invade-taiwan-by-june-30-2026
+      outcome: "Yes"
+    superset:
+      event_slug: will-china-invade-taiwan-before-2027
+      outcome: "Yes"
+
+  # ------ US-Iran nuclear deal — 3 horizons ------------------------------
+  # Highest-vol chain (May $90k, Jun $121k, 2027 $37k)
+  - id: iran-deal-may-vs-jun
+    type: temporal_monotonic
+    threshold: 0.03
+    note: P(deal by May 31 2026) <= P(by Jun 30 2026)
+    subset:
+      event_slug: us-iran-nuclear-deal-by-may-31-974
+      outcome: "Yes"
+    superset:
+      event_slug: us-iran-nuclear-deal-by-june-30
+      outcome: "Yes"
+
+  - id: iran-deal-jun-vs-2027
+    type: temporal_monotonic
+    threshold: 0.03
+    note: P(by Jun 30 2026) <= P(before 2027)
+    subset:
+      event_slug: us-iran-nuclear-deal-by-june-30
+      outcome: "Yes"
+    superset:
+      event_slug: us-iran-nuclear-deal-before-2027
+      outcome: "Yes"
+
+  - id: iran-deal-may-vs-2027
+    type: temporal_monotonic
+    threshold: 0.05
+    note: P(by May 31 2026) <= P(before 2027) — wider span
+    subset:
+      event_slug: us-iran-nuclear-deal-by-may-31-974
+      outcome: "Yes"
+    superset:
+      event_slug: us-iran-nuclear-deal-before-2027
+      outcome: "Yes"

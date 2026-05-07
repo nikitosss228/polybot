@@ -1,0 +1,14 @@
+[Unit]
+Description=Run polybot strategy analysis every 6 hours
+
+[Timer]
+# First run 2 minutes after boot/enable so we get a quick smoke report;
+# afterwards every 6 hours of wall-clock time since the previous run finished.
+OnBootSec=2min
+OnUnitActiveSec=6h
+# If the machine was off when a run was due, fire as soon as it's back.
+Persistent=true
+Unit=polybot-analyze.service
+
+[Install]
+WantedBy=timers.target

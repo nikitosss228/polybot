@@ -1,0 +1,21 @@
+[Unit]
+Description=Polybot — gate-loosening verdict (compare 5/7 checkpoint vs 5/2 baseline)
+Documentation=file:///root/polybot
+After=polybot-checkpoint.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+WorkingDirectory=/root/polybot
+ExecStart=/root/polybot/venv/bin/python /root/polybot/scripts/verdict.py
+
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/root/polybot/logs
+PrivateTmp=true
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=polybot-verdict
