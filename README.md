@@ -7,10 +7,12 @@ logs them (study mode) or executes via the CLOB (live mode). Every candidate is
 written to disk so you can run the same backtest later against actual market
 resolutions.
 
-This is research infrastructure, not a "make money" bot. Most prediction-market
-edges available to retail get eaten by fees; the harness here is for measuring
-that honestly. If you have a thesis, this lets you test it against two months
-of recorded data without writing the plumbing yourself.
+This is research infrastructure. With Polymarket's per-category fee schedule
+(0.75-1.8% taker, 0% maker, effective 2026-03-23) the bundled detectors clear
+fees on filtered subsets in two months of paper trading — but the absolute
+dollar amounts are small at a $100 budget, which is the point of being honest
+about retail-scale prediction-market trading. The harness here lets you test
+your own thesis against recorded data without writing the plumbing yourself.
 
 ## What it looks like
 
@@ -80,9 +82,11 @@ can rank without needing a global threshold.
 
 **Backtest harness** (`scripts/backtest.py`)
 
-Joins recorded candidates against subsequent market resolutions, applies the
-real Polymarket fee schedule (categorised per slug — sports 3%, politics/finance
-4%, crypto 7.2%), and produces a per-detector and per-(detector, category)
+Joins recorded candidates against subsequent market resolutions, applies
+Polymarket's per-category taker fees (sports 0.75%, politics/finance/tech
+1.0%, culture/weather 1.25%, economics 1.5%, crypto 1.8%; effective
+2026-03-23) inferred from the slug, and produces a per-detector and
+per-(detector, category)
 breakdown. Includes a "REALIZED SUBSET" view that filters to candidates whose
 markets have actually resolved during the test window, so you don't double-count
 open positions.
@@ -155,42 +159,49 @@ python scripts/backtest.py
 
 ## What the data looks like
 
-The headline finding from running these detectors against two months of
-Polymarket data: **the surface-level edge gets eaten by fees.** Below are
-real `scripts/backtest.py` numbers from the project author's run
-(Polygon mainnet, March-May 2026, 5,822 confidently resolved directional
-trades).
+Real `scripts/backtest.py` output from the project author's run (Polygon
+mainnet, March-May 2026, 5,845 confidently resolved directional trades) using
+Polymarket's actual per-category taker fees.
 
 **Baseline — every candidate, no filter:**
 
 | | gross ROI | fees paid | net ROI |
 |---|---:|---:|---:|
-| All resolved directional trades (n=5,822) | +1.34% | $645.95 | **−3.15%** |
+| All resolved directional trades (n=5,845) | +1.31% | $163 | **+0.19%** |
 
-Win rate is 90.1% — the detectors *do* pick winners. They just don't pick
-winners by enough margin to clear the 3-7% taker fee. This is the central
-challenge for retail directional trading on Polymarket.
+The directional detectors win 90.1% of trades and clear fees by a thin margin
+on the unfiltered universe. Most of the value is in the filtering — see below.
 
 **Per-detector baseline:**
 
 | Detector | n | win | gross ROI | net ROI |
 |---|---:|---:|---:|---:|
-| `extreme_priced` | 3,280 | 98.2% | +1.50% | −3.45% |
-| `date_expired` | 2,542 | 79.7% | +1.12% | −2.73% |
+| `extreme_priced` | 3,302 | 98.2% | +1.42% | +0.19% |
+| `date_expired` | 2,543 | 79.7% | +1.16% | +0.20% |
 | `mm_spread` | — | — | study only | — |
 | `bundle_arb` | — | n=3 in window | — | excluded |
 
-**Best filtered cell (from a 1,608-cell grid sweep):**
+**Best filtered cell (from a 1,659-cell grid sweep):**
 
 | Filter | n | win | gross ROI | net ROI |
 |---|---:|---:|---:|---:|
-| both detectors, vol ≥ $250k, edge 5-50% | 115 | 81.7% | +4.50% | **+1.21%** |
-| `date_expired` alone, vol ≥ $250k | 105 | 80.0% | +4.06% | +0.80% |
+| both detectors, vol ≥ $250k, edge 5-50% | 119 | 82.4% | +5.46% | **+4.62%** |
+| `date_expired` alone, vol ≥ $250k | 106 | 80.2% | +4.99% | +4.15% |
+| any detector, vol ≥ $250k (any edge) | 218 | 89.4% | +3.57% | +2.72% |
 
-Two things to take away. First, volume is the only filter axis that meaningfully
-moves net ROI: cutting the universe to vol ≥ $250k is what moves things from
-−3% to ~breakeven. Second, the surviving cells are *small* — 115 trades over
-two months on a $5 unit means about $3 of net PnL. This is research, not yield.
+Two things to take away. First, volume is the dominant filter axis — vol ≥
+$250k moves things from breakeven to comfortably above fees. Second, the
+surviving cells are *small* — 119 trades over two months on a $5 unit means
+about $13 of net PnL. The percentage is real; the absolute scale is bound
+by the budget.
+
+The fee model uses taker rates from Polymarket's per-category schedule
+(2026-03-23 onward). Polymarket also offers 0% maker fees plus a 20-25%
+rebate on counterparty taker fees for limit orders — current detectors
+execute as taker, so this rebate is unmodelled headroom. See
+`polybot/orders.py` and `polybot/mm_exit.py` for the maker-side posting
+infrastructure that's already wired up for `mm_spread` and could be
+extended to directional buys.
 
 Numbers depend on your `.env` config and the data you've collected. Re-run
 `scripts/backtest.py` after any config change to see your own version of this

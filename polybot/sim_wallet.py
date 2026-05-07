@@ -7,8 +7,11 @@ stays continuous).
 Frictions modeled:
 
 * **Fees** — per-slug heuristic estimate of Polymarket taker rate
-  (3% sports / 4% politics, finance, tech / 5% culture, economics,
-  weather / 7.2% crypto). Deducted from wallet on each entry. We
+  (sports 0.75%, politics/finance/tech 1.0%, culture/weather 1.25%,
+  economics 1.5%, crypto 1.8% — per Polymarket's per-category schedule
+  effective 2026-03-23). Maker fills cost 0% and earn a rebate on
+  counterparty fees, but this simulator models taker execution.
+  Deducted from wallet on each entry. We
   assume hold-to-resolution → no exit fee (UMA redemption is free).
 
 * **Slippage** — entry-fill price is the candidate's quoted entry
@@ -97,20 +100,20 @@ def fee_rate_for_slug(slug: str) -> float:
     s = slug.lower()
     for p in SPORTS_PREFIXES:
         if s.startswith(p):
-            return 0.03
+            return 0.0075
     for kw in CRYPTO_KEYWORDS:
         if kw in s:
-            return 0.072
+            return 0.018
     for kw in WEATHER_KEYWORDS:
         if kw in s:
-            return 0.05
+            return 0.0125
     for kw in CULTURE_KEYWORDS:
         if kw in s:
-            return 0.05
+            return 0.0125
     for kw in FINANCE_KEYWORDS:
         if kw in s:
-            return 0.04
-    return 0.04  # default = politics
+            return 0.01
+    return 0.01  # default = politics
 
 
 # ---------- slippage -------------------------------------------------------

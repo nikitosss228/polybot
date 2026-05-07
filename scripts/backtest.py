@@ -6,9 +6,12 @@ Loads ``candidates.csv`` + ``resolutions.csv`` and computes realized
 directional PnL for each *confidently resolved* candidate (near_one → 1.0,
 near_zero → 0.0; ambiguous fell_out_of_feed and never-observed defaults
 are excluded). Subtracts an entry-side taker fee inferred from the slug
-(3% sports, 4% politics/finance/tech, 5% culture/economics/weather,
-7.2% crypto). No exit fee — the model assumes hold-to-resolution where
-UMA redemption is free.
+per Polymarket's per-category fee schedule (sports 0.75%, politics/
+finance/tech 1.0%, culture/weather 1.25%, economics 1.5%, crypto 1.8%,
+effective 2026-03-23). No exit fee — the model assumes hold-to-resolution
+where UMA redemption is free. Maker fills (limit orders that wait to be
+hit) cost 0% and earn a 20-25% rebate on counterparty's taker fee, but
+this backtest models taker-only execution.
 
 Sweeps a grid of (min_edge, max_edge, min_vol, min_conf, micro_tf) and
 reports per-cell stats sorted by net-ROI. Cells with n<50 are dropped
@@ -57,11 +60,12 @@ VALIDATED_CELL = {
 # ---------- fee inference ---------------------------------------------------
 
 # Slug-prefix heuristic for fee category. Order matters — first match wins.
-# When in doubt, default to 4% politics (median), which is also Polymarket's
-# most common category. Verified categories from the Gamma API survey:
-#   sports_fees_v2 → 3%, politics_fees → 4%, finance_prices_fees → 4%,
-#   tech_fees → 4%, culture_fees → 5%, economics_fees → 5%, weather_fees → 5%,
-#   crypto_fees_v2 → 7.2%
+# Per-category taker fees, effective 2026-03-23 onward:
+#   sports → 0.75%, politics → 1.0%, finance → 1.0%, tech → 1.0%,
+#   culture → 1.25%, weather → 1.25%, economics → 1.5%, mentions → 1.56%,
+#   crypto → 1.8%
+# When the slug doesn't match, default to 1.0% (politics, median).
+# Maker fills are 0% (with 20-25% rebate of counterparty's taker fee).
 SPORTS_PREFIXES = (
     "lol-", "cs2-", "dota2-", "val-", "atp-", "wta-", "nba-", "mlb-",
     "nfl-", "nhl-", "epl-", "ucl-", "uel-", "sea-", "rusrp-", "bra-",
@@ -94,28 +98,28 @@ FINANCE_KEYWORDS = (
 def fee_rate_for_slug(slug: str) -> float:
     """Return the inferred Polymarket taker fee for this market.
 
-    Conservative: defaults to 4% (politics rate) when the slug doesn't
-    match any pattern. The grid sweep is run twice (raw + after-fee),
-    so cells whose ranking depends critically on fee inference are
-    visible — anything stable across both views is robust.
+    Defaults to 1.0% (politics rate) when the slug doesn't match any
+    pattern. Real fee schedule from Polymarket's per-category pricing
+    introduced 2026-03-23. Geopolitics markets are free but we don't
+    detect them by slug — they're rare in our dataset.
     """
     s = slug.lower()
     for p in SPORTS_PREFIXES:
         if s.startswith(p):
-            return 0.03
+            return 0.0075
     for kw in CRYPTO_KEYWORDS:
         if kw in s:
-            return 0.072
+            return 0.018
     for kw in WEATHER_KEYWORDS:
         if kw in s:
-            return 0.05
+            return 0.0125
     for kw in CULTURE_KEYWORDS:
         if kw in s:
-            return 0.05
+            return 0.0125
     for kw in FINANCE_KEYWORDS:
         if kw in s:
-            return 0.04
-    return 0.04  # default politics
+            return 0.01
+    return 0.01  # default politics
 
 
 # ---------- detector + flags (mirror analyze.py) ----------------------------
