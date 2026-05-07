@@ -12,6 +12,57 @@ edges available to retail get eaten by fees; the harness here is for measuring
 that honestly. If you have a thesis, this lets you test it against two months
 of recorded data without writing the plumbing yourself.
 
+## What it looks like
+
+`scripts/dashboard.py` shows live status — open positions, equity curve,
+tick-by-tick candidates, paper PnL by detector. Snapshot from a paper-trading
+run:
+
+```
+╭───────────────────────── System ─────────────────────────╮╭────────────────────── Mode & Risk ───────────────────────╮
+│ polybot.service:       ● active                          ││ Mode:      DRY-RUN  /  auto-trade ON  /  wallet NOT      │
+│   pid / since:         51633   started 09:05 UTC (-6h    ││            CONFIGURED                                    │
+│                        35m)                              ││ Risk caps: budget=$100  per_trade=$7  daily_loss=$10     │
+│ polybot-analyze.timer: ● active                          ││            max_exposure=$80                              │
+│   last / next:         14:05 UTC (-1h 35m) → 20:05 UTC   ││ Scanner:   min_edge=2.0%  min_vol24h=$50000  every 60s   │
+╰──────────────────────────────────────────────────────────╯╰──────────────────────────────────────────────────────────╯
+╭─────────────────────── Tick state ───────────────────────╮╭───────────────────────── Equity ─────────────────────────╮
+│ Current tick:   #2228  Last tick at:    15:40:47 UTC     ││ Mode:            PAPER (DRY_RUN)                         │
+│ Candidates      52     Total candidate  563565           ││ Started:         $100.00                                 │
+│ this tick:             rows:                             ││ Wallet / locked: $ 24.19  /  $73.11  (12 open / 1        │
+│ Tokens          99     Oldest           2026-04-30 08:12 ││                  closed)                                 │
+│ tracked:               first-seen:      UTC (-7d 7h)     ││ Equity:          $ 97.30  ($-2.70, -2.70%)               │
+│                                                          ││ Realized PnL:    +$0.61  (from 1 closed)                 │
+│                                                          ││ Fees paid:       −$3.31                                  │
+╰──────────────────────────────────────────────────────────╯╰──────────────────────────────────────────────────────────╯
+╭─────────────────────────────────────────────────── Open positions ───────────────────────────────────────────────────╮
+│                                open: 12  closed: 1  realized PnL:   +$0.61  (1W / 0L)                                │
+│ ┏━━━━━━━━━━━━━━━━┳━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓ │
+│ ┃ det            ┃ side ┃    entry→live ┃   drift ┃    size ┃  shares ┃     age ┃ market                           ┃ │
+│ ┡━━━━━━━━━━━━━━━━╇━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩ │
+│ │ extreme_priced │ Yes  │   0.903→0.915 │  +1.34% │   $6.25 │    6.92 │ -8h 39m │ will-trump-visit-china-by-may-1… │ │
+│ │ extreme_priced │ No   │   0.921→0.903 │  -1.91% │   $6.25 │    6.79 │ -8h 39m │ hantavirus-pandemic-in-2026      │ │
+│ │ extreme_priced │ No   │   0.926→0.943 │  +1.78% │   $6.25 │    6.75 │ -8h 39m │ will-china-invade-taiwan-before… │ │
+│ │ extreme_priced │ No   │   0.958→0.917 │  -4.30% │   $6.25 │    6.52 │ -8h 39m │ will-donald-trump-announce-that… │ │
+│ │ extreme_priced │ No   │   0.950→0.955 │  +0.51% │   $6.25 │    6.58 │ -8h 39m │ will-the-iranian-regime-fall-by… │ │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+                     Paper PnL — first-seen → live (mm_spread uses round-trip spread-capture model)
+┏━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━┓
+┃ detector              ┃        n ┃      avg drift ┃      win% ┃       deployed ┃      total PnL ┃      avg PnL/trade ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━┩
+│ date_expired          │     3516 │         +0.18% │     64.7% │       $8068.64 │        +$42.75 │             +$0.01 │
+│ extreme_priced        │     3914 │         +0.17% │     79.1% │      $10308.14 │        +$27.24 │             +$0.01 │
+│ bundle_arb            │        3 │        -99.86% │      0.0% │          $9.76 │         $-9.75 │             $-3.25 │
+│ mm_spread             │     3393 │       +336.76% │     46.7% │       $7830.75 │      +$2873.94 │             +$0.85 │
+└───────────────────────┴──────────┴────────────────┴───────────┴────────────────┴────────────────┴────────────────────┘
+```
+
+The Paper PnL table is "if you bought at first-seen price, where are you now"
+and is mode-dependent — `mm_spread` reports a round-trip spread-capture model
+rather than realized fills, so its huge `+336% avg drift` is unrealistic as
+return. For realized numbers, see the [What the data looks like](#what-the-data-looks-like)
+section below or run `scripts/backtest.py`.
+
 ## What's in the box
 
 **Four edge detectors** (`polybot/scanner.py`)
