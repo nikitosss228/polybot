@@ -143,6 +143,16 @@ python scripts/backtest.py         # historical PnL on resolved markets
 python scripts/category_priors.py  # rebuild Kelly priors from your data
 ```
 
+Don't want to wait weeks to collect data? `examples/` ships ~5,000 candidates
++ matching resolutions from the project author's run. Copy them into `logs/`
+and the backtest harness produces output immediately:
+
+```bash
+cp examples/sample_candidates.csv logs/candidates.csv
+cp examples/sample_resolutions.csv logs/resolutions.csv
+python scripts/backtest.py
+```
+
 ## What the data looks like
 
 The headline finding from running these detectors against two months of
